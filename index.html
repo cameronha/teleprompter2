@@ -6,7 +6,8 @@
 <title>Teleprompter</title>
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #000; }
+  html { width: 100%; height: -webkit-fill-available; overflow: hidden; background: #000; }
+  body, #root { width: 100%; height: 100%; height: -webkit-fill-available; overflow: hidden; background: #000; }
   body { font-family: Georgia, 'Times New Roman', serif; color: #fff; }
 
   input[type="range"] {
@@ -197,7 +198,7 @@ function Teleprompter() {
 
   // --- EDITING VIEW ---
   if (isEditing) {
-    return e('div', { ref: containerRef, style: { width: '100%', height: '100vh', background: '#000', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '24px 32px' } },
+    return e('div', { ref: containerRef, style: { width: '100%', height: '100%', background: '#000', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '24px 32px' } },
       e('div', { style: { color: '#aaa', fontSize: 13, marginBottom: 12, fontFamily: 'system-ui, sans-serif', letterSpacing: '0.05em', textTransform: 'uppercase' } }, 'Paste or type your script below'),
       e('textarea', {
         value: editBuffer,
@@ -213,7 +214,7 @@ function Teleprompter() {
   }
 
   // --- MAIN VIEW ---
-  return e('div', { ref: containerRef, style: { width: '100%', height: '100vh', background: '#000', color: '#fff', fontFamily: "Georgia, 'Times New Roman', serif", display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' } },
+  return e('div', { ref: containerRef, style: { width: '100%', height: '100%', background: '#000', color: '#fff', fontFamily: "Georgia, 'Times New Roman', serif", display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' } },
 
     // Progress bar
     e('div', { style: { position: 'absolute', top: 0, left: 0, width: pct, height: 3, background: '#e74c3c', zIndex: 20 } }),
