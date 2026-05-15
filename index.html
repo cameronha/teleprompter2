@@ -6,8 +6,7 @@
 <title>Teleprompter</title>
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html { width: 100%; height: -webkit-fill-available; overflow: hidden; background: #000; }
-  body, #root { width: 100%; height: 100%; height: -webkit-fill-available; overflow: hidden; background: #000; }
+  html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #000; }
   body { font-family: Georgia, 'Times New Roman', serif; color: #fff; }
 
   input[type="range"] {
@@ -76,6 +75,15 @@
 <body>
 <div id="root"></div>
 
+<script>
+  function fixHeight() {
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+    document.getElementById('root').style.height = window.innerHeight + 'px';
+  }
+  fixHeight();
+  window.addEventListener('resize', fixHeight);
+  window.addEventListener('orientationchange', function() { setTimeout(fixHeight, 200); });
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
