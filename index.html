@@ -225,10 +225,10 @@ function Teleprompter() {
       e('div', { style: { position: 'absolute', top: '47%', left: 12, zIndex: 10, pointerEvents: 'none', color: 'rgba(231,76,60,0.5)', fontSize: 22 } }, '▶')
     ),
 
-    // Countdown overlay
-    countdown !== null && e('div', { style: { position: 'absolute', inset: 0, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', pointerEvents: 'none' } },
-      e('div', { style: { fontSize: 140, fontWeight: 200, fontFamily: 'system-ui, sans-serif', color: '#e74c3c', lineHeight: 1, animation: 'pulse 1s ease-in-out infinite' } }, countdown),
-      e('div', { style: { marginTop: 20, fontSize: 16, color: '#666', fontFamily: 'system-ui, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase' } }, 'Get ready...')
+    // Countdown corner badge
+    countdown !== null && e('div', { style: { position: 'absolute', top: 20, right: 24, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', background: 'rgba(0,0,0,0.6)', borderRadius: 16, padding: '10px 20px' } },
+      e('div', { style: { fontSize: 96, fontWeight: 200, fontFamily: 'system-ui, sans-serif', color: '#e74c3c', lineHeight: 1, animation: 'pulse 1s ease-in-out infinite' } }, countdown),
+      e('div', { style: { fontSize: 13, color: '#666', fontFamily: 'system-ui, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 } }, 'get ready')
     ),
 
     // Scrolling text viewport
