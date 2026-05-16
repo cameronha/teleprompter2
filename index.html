@@ -108,6 +108,9 @@ function Teleprompter() {
   const [speed, setSpeed] = useState(3);
   const [fontSize, setFontSize] = useState(42);
   const [mirrored, setMirrored] = useState(false);
+  const [textAlign, setTextAlign] = useState('center');
+  const alignLabels = { left: '| Left', center: 'Center', right: 'Right |' };
+  const cycleAlign = () => setTextAlign(a => a === 'left' ? 'center' : a === 'center' ? 'right' : 'left');
   const [scrollProgress, setScrollProgress] = useState(0);
   const [countdown, setCountdown] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -201,7 +204,7 @@ function Teleprompter() {
 
   const startCountdown = () => {
     if (isScrolling || countdown !== null) return;
-    setCountdown(5);
+    setCountdown(3);
   };
 
   useEffect(() => {
@@ -308,7 +311,7 @@ function Teleprompter() {
     e('div', { ref: viewportRef, style: { flex: 1, overflow: 'hidden', padding: '0 48px', position: 'relative' } },
       e('div', { ref: textRef, style: { willChange: 'transform', transform: mirrored ? 'scaleX(-1) translateY(' + (-offset) + 'px)' : 'translateY(' + (-offset) + 'px)', backfaceVisibility: 'hidden' } },
         e('div', { style: { height: '45vh' } }),
-        e('div', { style: { fontSize, lineHeight: 1.65, fontWeight: 400, letterSpacing: '0.01em', maxWidth: 900, margin: '0 auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textShadow: '0 0 20px rgba(255,255,255,0.08)' } }, script),
+        e('div', { style: { fontSize, lineHeight: 1.65, fontWeight: 400, letterSpacing: '0.01em', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textShadow: '0 0 20px rgba(255,255,255,0.08)', textAlign, width: '100%' } }, script),
         e('div', { style: { height: '55vh' } })
       )
     ),
@@ -333,6 +336,7 @@ function Teleprompter() {
         e('button', { onClick: handlePlayPause, style: { width: 56, height: 56, borderRadius: '50%', background: (isScrolling || countdown !== null) ? '#c0392b' : '#e74c3c', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, WebkitTapHighlightColor: 'transparent' } }, (isScrolling || countdown !== null) ? '⏸' : '▶'),
         e('button', { onClick: handleReset, className: 'tp-btn' }, 'Reset'),
         e('button', { onClick: () => setMirrored(!mirrored), className: 'tp-btn' + (mirrored ? ' tp-btn-active' : '') }, 'Mirror'),
+        e('button', { onClick: cycleAlign, className: 'tp-btn' }, alignLabels[textAlign]),
         e('button', { onClick: toggleFullscreen, className: 'tp-btn' + (isFullscreen ? ' tp-btn-active' : '') }, isFullscreen ? 'Exit ⛶' : 'Fullscreen ⛶'),
         e('button', { onClick: () => { setEditBuffer(script); setIsEditing(true); setIsScrolling(false); cancelCountdown(); }, className: 'tp-btn' }, 'Edit Script')
       )
