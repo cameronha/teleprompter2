@@ -97,7 +97,9 @@ const sb = supabase.createClient(
 );
 
 function syncUp(data) {
-  sb.from('teleprompter_rooms').update(data).eq('id', 'main').then();
+  console.log('syncUp', data);
+  sb.from('teleprompter_rooms').update(data).eq('id', 'main')
+    .then(({ error }) => { if (error) console.error('syncUp error:', error); });
 }
 
 function Teleprompter() {
