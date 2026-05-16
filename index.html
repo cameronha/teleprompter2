@@ -84,11 +84,21 @@
   window.addEventListener('resize', fixHeight);
   window.addEventListener('orientationchange', function() { setTimeout(fixHeight, 200); });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
 const { useState, useRef, useEffect, useCallback } = React;
 const e = React.createElement;
+
+const sb = supabase.createClient(
+  'https://kbcusexevnqsxbhqtcqv.supabase.co',
+  'sb_publishable_WaDZ9MUT62ADegxEG9IvZg_qAsbuSPn'
+);
+
+function syncUp(data) {
+  sb.from('teleprompter_rooms').update(data).eq('id', 'main').then();
+}
 
 function Teleprompter() {
   const [script, setScript] = useState('');
@@ -110,6 +120,28 @@ function Teleprompter() {
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const viewportRef = useRef(null);
+  const syncDebounce = useRef(null);
+
+  // Load initial state and subscribe to real-time changes
+  useEffect(() => {
+    sb.from('teleprompter_rooms').select('*').eq('id', 'main').single().then(({ data }) => {
+      if (data) {
+        setScript(data.script || '');
+        setSpeed(data.speed || 3);
+        setFontSize(data.font_size || 42);
+      }
+    });
+
+    const channel = sb.channel('room:main')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'teleprompter_rooms', filter: 'id=eq.main' }, ({ new: d }) => {
+        setScript(d.script || '');
+        setSpeed(d.speed || 3);
+        setFontSize(d.font_size || 42);
+      })
+      .subscribe();
+
+    return () => { sb.removeChannel(channel); };
+  }, []);
 
   const speedPxPerSec = speed * 18;
 
@@ -186,6 +218,19 @@ function Teleprompter() {
     setScript(editBuffer);
     setIsEditing(false);
     handleReset();
+    syncUp({ script: editBuffer });
+  };
+
+  const handleSpeedChange = (val) => {
+    setSpeed(val);
+    if (syncDebounce.current) clearTimeout(syncDebounce.current);
+    syncDebounce.current = setTimeout(() => syncUp({ speed: val }), 300);
+  };
+
+  const handleFontSizeChange = (val) => {
+    setFontSize(val);
+    if (syncDebounce.current) clearTimeout(syncDebounce.current);
+    syncDebounce.current = setTimeout(() => syncUp({ font_size: val }), 300);
   };
 
   const toggleFullscreen = () => {
@@ -255,12 +300,12 @@ function Teleprompter() {
       e('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
           e('span', { style: { color: '#888', fontSize: 15, minWidth: 52 } }, 'Speed'),
-          e('input', { type: 'range', min: 1, max: 10, step: 0.5, value: speed, onChange: (ev) => setSpeed(parseFloat(ev.target.value)), style: { flex: 1, height: 36 } }),
+          e('input', { type: 'range', min: 1, max: 10, step: 0.5, value: speed, onChange: (ev) => handleSpeedChange(parseFloat(ev.target.value)), style: { flex: 1, height: 36 } }),
           e('span', { style: { color: '#ccc', fontSize: 16, fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'right' } }, speed)
         ),
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
           e('span', { style: { color: '#888', fontSize: 15, minWidth: 52 } }, 'Size'),
-          e('input', { type: 'range', min: 24, max: 72, step: 2, value: fontSize, onChange: (ev) => setFontSize(parseInt(ev.target.value)), style: { flex: 1, height: 36 } }),
+          e('input', { type: 'range', min: 24, max: 72, step: 2, value: fontSize, onChange: (ev) => handleFontSizeChange(parseInt(ev.target.value)), style: { flex: 1, height: 36 } }),
           e('span', { style: { color: '#ccc', fontSize: 16, fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'right' } }, fontSize + 'px')
         )
       ),
