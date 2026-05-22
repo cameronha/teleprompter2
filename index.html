@@ -112,14 +112,13 @@ function Teleprompter() {
   const alignLabels = { left: '| Left', center: 'Center', right: 'Right |' };
   const cycleAlign = () => setTextAlign(a => a === 'left' ? 'center' : a === 'center' ? 'right' : 'left');
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [countdown, setCountdown] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [margin, setMargin] = useState(0);
 
   const offsetRef = useRef(0);
   const [offset, setOffset] = useState(0);
   const animRef = useRef(null);
   const lastTimeRef = useRef(null);
-  const countdownRef = useRef(null);
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const viewportRef = useRef(null);
@@ -161,8 +160,6 @@ function Teleprompter() {
           lastResetCounter.current = d.reset_counter;
           resetCounterRef.current = d.reset_counter;
           if (animRef.current) cancelAnimationFrame(animRef.current);
-          if (countdownRef.current) clearTimeout(countdownRef.current);
-          setCountdown(null);
           offsetRef.current = 0;
           setOffset(0);
           setScrollProgress(0);
@@ -207,7 +204,13 @@ function Teleprompter() {
     lastTimeRef.current = timestamp;
 
     const maxOffset = getMaxOffset();
-    offsetRef.current = Math.min(offsetRef.current + speedPxPerSec * delta, maxOffset);
+    offsetRef.current = offsetRef.current + speedPxPerSec * delta;
+
+    // Auto-recycle: jump back to top when we reach the end
+    if (maxOffset > 0 && offsetRef.current >= maxOffset) {
+      offsetRef.current = 0;
+      syncUp({ scroll_position: 0 });
+    }
 
     if (textRef.current) {
       textRef.current.style.transform = (mirrored ? 'scaleX(-1) ' : '') + 'translateY(' + (-offsetRef.current) + 'px)';
@@ -215,12 +218,6 @@ function Teleprompter() {
 
     setScrollProgress(maxOffset > 0 ? offsetRef.current / maxOffset : 0);
 
-    if (offsetRef.current >= maxOffset) {
-      setIsScrolling(false);
-      setOffset(offsetRef.current);
-      syncUp({ is_scrolling: false });
-      return;
-    }
     animRef.current = requestAnimationFrame(doScroll);
   }, [speedPxPerSec, getMaxOffset, mirrored]);
 
@@ -234,32 +231,13 @@ function Teleprompter() {
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [isScrolling, doScroll]);
 
-  const startCountdown = () => {
-    if (isScrolling || countdown !== null) return;
-    setCountdown(3);
-  };
-
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown === 0) { setCountdown(null); setIsScrolling(true); syncUp({ is_scrolling: true }); return; }
-    countdownRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(countdownRef.current);
-  }, [countdown]);
-
-  const cancelCountdown = () => {
-    setCountdown(null);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
-  };
-
   const handlePlayPause = () => {
-    if (countdown !== null) { cancelCountdown(); syncUp({ is_scrolling: false }); return; }
     if (isScrolling) { setIsScrolling(false); setOffset(offsetRef.current); syncUp({ is_scrolling: false }); }
-    else { startCountdown(); }
+    else { setIsScrolling(true); syncUp({ is_scrolling: true }); }
   };
 
   const handleReset = () => {
     setIsScrolling(false);
-    cancelCountdown();
     offsetRef.current = 0;
     setOffset(0);
     setScrollProgress(0);
@@ -327,23 +305,15 @@ function Teleprompter() {
     e('div', { style: { position: 'absolute', top: 0, left: 0, width: pct, height: 3, background: '#e74c3c', zIndex: 20 } }),
 
     // Guide lines
-    countdown === null && e(React.Fragment, null,
-      e('div', { style: { position: 'absolute', top: '42%', left: 0, right: 0, height: 1, background: 'rgba(231,76,60,0.25)', zIndex: 10, pointerEvents: 'none' } }),
-      e('div', { style: { position: 'absolute', top: '54%', left: 0, right: 0, height: 1, background: 'rgba(231,76,60,0.25)', zIndex: 10, pointerEvents: 'none' } }),
-      e('div', { style: { position: 'absolute', top: '47%', left: 12, zIndex: 10, pointerEvents: 'none', color: 'rgba(231,76,60,0.5)', fontSize: 22 } }, '▶')
-    ),
-
-    // Countdown corner badge
-    countdown !== null && e('div', { style: { position: 'absolute', top: 20, right: 24, zIndex: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', background: 'rgba(0,0,0,0.6)', borderRadius: 16, padding: '10px 20px' } },
-      e('div', { style: { fontSize: 96, fontWeight: 200, fontFamily: 'system-ui, sans-serif', color: '#e74c3c', lineHeight: 1, animation: 'pulse 1s ease-in-out infinite' } }, countdown),
-      e('div', { style: { fontSize: 13, color: '#666', fontFamily: 'system-ui, sans-serif', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 } }, 'get ready')
-    ),
+    e('div', { style: { position: 'absolute', top: '42%', left: 0, right: 0, height: 1, background: 'rgba(231,76,60,0.25)', zIndex: 10, pointerEvents: 'none' } }),
+    e('div', { style: { position: 'absolute', top: '54%', left: 0, right: 0, height: 1, background: 'rgba(231,76,60,0.25)', zIndex: 10, pointerEvents: 'none' } }),
+    e('div', { style: { position: 'absolute', top: '47%', left: 12, zIndex: 10, pointerEvents: 'none', color: 'rgba(231,76,60,0.5)', fontSize: 22 } }, '▶'),
 
     // Scrolling text viewport
     e('div', { ref: viewportRef, style: { flex: 1, overflow: 'hidden', padding: '0 48px', position: 'relative' } },
       e('div', { ref: textRef, style: { willChange: 'transform', transform: mirrored ? 'scaleX(-1) translateY(' + (-offset) + 'px)' : 'translateY(' + (-offset) + 'px)', backfaceVisibility: 'hidden' } },
         e('div', { style: { height: '45vh' } }),
-        e('div', { style: { fontSize, lineHeight: 1.65, fontWeight: 400, letterSpacing: '0.01em', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textShadow: '0 0 20px rgba(255,255,255,0.08)', textAlign, width: '100%' } }, script),
+        e('div', { style: { fontSize, lineHeight: 1.65, fontWeight: 400, letterSpacing: '0.01em', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textShadow: '0 0 20px rgba(255,255,255,0.08)', textAlign, maxWidth: (100 - margin * 2) + '%', marginLeft: 'auto', marginRight: 'auto' } }, script),
         e('div', { style: { height: '55vh' } })
       )
     ),
@@ -361,16 +331,21 @@ function Teleprompter() {
           e('span', { style: { color: '#888', fontSize: 15, minWidth: 52 } }, 'Size'),
           e('input', { type: 'range', min: 24, max: 72, step: 2, value: fontSize, onChange: (ev) => handleFontSizeChange(parseInt(ev.target.value)), style: { flex: 1, height: 36 } }),
           e('span', { style: { color: '#ccc', fontSize: 16, fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'right' } }, fontSize + 'px')
+        ),
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+          e('span', { style: { color: '#888', fontSize: 15, minWidth: 52 } }, 'Margin'),
+          e('input', { type: 'range', min: 0, max: 40, step: 1, value: margin, onChange: (ev) => setMargin(parseInt(ev.target.value)), style: { flex: 1, height: 36 } }),
+          e('span', { style: { color: '#ccc', fontSize: 16, fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'right' } }, margin + '%')
         )
       ),
 
       e('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' } },
-        e('button', { onClick: handlePlayPause, style: { width: 56, height: 56, borderRadius: '50%', background: (isScrolling || countdown !== null) ? '#c0392b' : '#e74c3c', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, WebkitTapHighlightColor: 'transparent' } }, (isScrolling || countdown !== null) ? '⏸' : '▶'),
+        e('button', { onClick: handlePlayPause, style: { width: 56, height: 56, borderRadius: '50%', background: isScrolling ? '#c0392b' : '#e74c3c', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, WebkitTapHighlightColor: 'transparent' } }, isScrolling ? '⏸' : '▶'),
         e('button', { onClick: handleReset, className: 'tp-btn' }, 'Reset'),
         e('button', { onClick: () => setMirrored(!mirrored), className: 'tp-btn' + (mirrored ? ' tp-btn-active' : '') }, 'Mirror'),
         e('button', { onClick: cycleAlign, className: 'tp-btn' }, alignLabels[textAlign]),
         e('button', { onClick: toggleFullscreen, className: 'tp-btn' + (isFullscreen ? ' tp-btn-active' : '') }, isFullscreen ? 'Exit ⛶' : 'Fullscreen ⛶'),
-        e('button', { onClick: () => { setEditBuffer(script); setIsEditing(true); setIsScrolling(false); cancelCountdown(); }, className: 'tp-btn' }, 'Edit Script')
+        e('button', { onClick: () => { setEditBuffer(script); setIsEditing(true); setIsScrolling(false); }, className: 'tp-btn' }, 'Edit Script')
       )
     )
   );
