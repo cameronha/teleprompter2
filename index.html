@@ -122,7 +122,10 @@ function Teleprompter() {
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const viewportRef = useRef(null);
-  const syncDebounce = useRef(null);
+  const speedDebounce = useRef(null);
+  const fontSizeDebounce = useRef(null);
+  const marginDebounce = useRef(null);
+  const scrollDebounce = useRef(null);
   const resetCounterRef = useRef(0);
   const lastResetCounter = useRef(0);
   const isScrollingRef = useRef(false);
@@ -140,6 +143,12 @@ function Teleprompter() {
         setSpeed(data.speed || 3);
         setFontSize(data.font_size || 42);
         if (typeof data.margin === 'number') setMargin(data.margin);
+        if (typeof data.scroll_position === 'number') {
+          offsetRef.current = data.scroll_position;
+          setOffset(data.scroll_position);
+          lastAppliedScrollPosition.current = data.scroll_position;
+        }
+        setIsScrolling(!!data.is_scrolling);
         resetCounterRef.current = data.reset_counter || 0;
         lastResetCounter.current = data.reset_counter || 0;
       }
@@ -195,8 +204,8 @@ function Teleprompter() {
       }
       setOffset(offsetRef.current);
       setScrollProgress(maxOffset > 0 ? offsetRef.current / maxOffset : 0);
-      if (syncDebounce.current) clearTimeout(syncDebounce.current);
-      syncDebounce.current = setTimeout(() => syncUp({ scroll_position: offsetRef.current }), 150);
+      if (scrollDebounce.current) clearTimeout(scrollDebounce.current);
+      scrollDebounce.current = setTimeout(() => syncUp({ scroll_position: offsetRef.current }), 150);
     };
     viewport.addEventListener('wheel', handleWheel, { passive: false });
     return () => viewport.removeEventListener('wheel', handleWheel);
@@ -259,20 +268,20 @@ function Teleprompter() {
 
   const handleSpeedChange = (val) => {
     setSpeed(val);
-    if (syncDebounce.current) clearTimeout(syncDebounce.current);
-    syncDebounce.current = setTimeout(() => syncUp({ speed: val }), 300);
+    if (speedDebounce.current) clearTimeout(speedDebounce.current);
+    speedDebounce.current = setTimeout(() => syncUp({ speed: val }), 300);
   };
 
   const handleFontSizeChange = (val) => {
     setFontSize(val);
-    if (syncDebounce.current) clearTimeout(syncDebounce.current);
-    syncDebounce.current = setTimeout(() => syncUp({ font_size: val }), 300);
+    if (fontSizeDebounce.current) clearTimeout(fontSizeDebounce.current);
+    fontSizeDebounce.current = setTimeout(() => syncUp({ font_size: val }), 300);
   };
 
   const handleMarginChange = (val) => {
     setMargin(val);
-    if (syncDebounce.current) clearTimeout(syncDebounce.current);
-    syncDebounce.current = setTimeout(() => syncUp({ margin: val }), 300);
+    if (marginDebounce.current) clearTimeout(marginDebounce.current);
+    marginDebounce.current = setTimeout(() => syncUp({ margin: val }), 300);
   };
 
   const toggleFullscreen = () => {
