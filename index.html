@@ -127,6 +127,7 @@ function Teleprompter() {
   const lastResetCounter = useRef(0);
   const isScrollingRef = useRef(false);
   const mirroredRef = useRef(false);
+  const lastAppliedScrollPosition = useRef(null);
 
   useEffect(() => { isScrollingRef.current = isScrolling; }, [isScrolling]);
   useEffect(() => { mirroredRef.current = mirrored; }, [mirrored]);
@@ -138,6 +139,7 @@ function Teleprompter() {
         setScript(data.script || '');
         setSpeed(data.speed || 3);
         setFontSize(data.font_size || 42);
+        if (typeof data.margin === 'number') setMargin(data.margin);
         resetCounterRef.current = data.reset_counter || 0;
         lastResetCounter.current = data.reset_counter || 0;
       }
@@ -149,7 +151,9 @@ function Teleprompter() {
         setSpeed(d.speed || 3);
         setFontSize(d.font_size || 42);
         setIsScrolling(!!d.is_scrolling);
-        if (!isScrollingRef.current && typeof d.scroll_position === 'number') {
+        if (typeof d.margin === 'number') setMargin(d.margin);
+        if (typeof d.scroll_position === 'number' && d.scroll_position !== lastAppliedScrollPosition.current) {
+          lastAppliedScrollPosition.current = d.scroll_position;
           offsetRef.current = d.scroll_position;
           setOffset(d.scroll_position);
           if (textRef.current) {
@@ -265,6 +269,12 @@ function Teleprompter() {
     syncDebounce.current = setTimeout(() => syncUp({ font_size: val }), 300);
   };
 
+  const handleMarginChange = (val) => {
+    setMargin(val);
+    if (syncDebounce.current) clearTimeout(syncDebounce.current);
+    syncDebounce.current = setTimeout(() => syncUp({ margin: val }), 300);
+  };
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       containerRef.current && containerRef.current.requestFullscreen && containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
@@ -334,7 +344,7 @@ function Teleprompter() {
         ),
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
           e('span', { style: { color: '#888', fontSize: 15, minWidth: 52 } }, 'Margin'),
-          e('input', { type: 'range', min: 0, max: 40, step: 1, value: margin, onChange: (ev) => setMargin(parseInt(ev.target.value)), style: { flex: 1, height: 36 } }),
+          e('input', { type: 'range', min: 0, max: 40, step: 1, value: margin, onChange: (ev) => handleMarginChange(parseInt(ev.target.value)), style: { flex: 1, height: 36 } }),
           e('span', { style: { color: '#ccc', fontSize: 16, fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 42, textAlign: 'right' } }, margin + '%')
         )
       ),
