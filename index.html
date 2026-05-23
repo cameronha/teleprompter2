@@ -164,7 +164,6 @@ function Teleprompter() {
         setIsScrolling(!!d.is_scrolling);
         if (typeof d.margin === 'number') setMargin(d.margin);
         if (typeof d.scroll_position === 'number' && d.scroll_position !== lastAppliedScrollPosition.current) {
-          console.log('[tp] received scroll_position', d.scroll_position);
           lastAppliedScrollPosition.current = d.scroll_position;
           offsetRef.current = d.scroll_position;
           setOffset(d.scroll_position);
@@ -208,10 +207,7 @@ function Teleprompter() {
       setOffset(offsetRef.current);
       setScrollProgress(maxOffset > 0 ? offsetRef.current / maxOffset : 0);
       if (scrollDebounce.current) clearTimeout(scrollDebounce.current);
-      scrollDebounce.current = setTimeout(() => {
-        console.log('[tp] broadcasting scroll_position', offsetRef.current);
-        syncUp({ scroll_position: offsetRef.current });
-      }, 150);
+      scrollDebounce.current = setTimeout(() => syncUp({ scroll_position: offsetRef.current }), 150);
     };
     viewport.addEventListener('wheel', handleWheel, { passive: false });
     return () => viewport.removeEventListener('wheel', handleWheel);
